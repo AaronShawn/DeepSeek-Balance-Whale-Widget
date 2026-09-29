@@ -1,13 +1,15 @@
 {
-  "name": "dsh-whale-widget",
-  "version": "0.3.17",
-  "description": "DSH Web 界面右下角的 DeepSeek 余额小鲸鱼挂件:余额/今日已用/峰谷定价、自定义泡泡点击序列(文本/余额/今日/峰谷/图片/随机语句与并列加权选择)、逐行样式与字体、悬浮快捷编辑、音效与每轮消耗、自定义角色/动图/音效、吸附与翻转自定义",
+  "name": "dsh-whale-widget-100xpro",
+  "version": "0.3.17-100xpro.1",
+  "description": "[100xpro 改版] 基于 dsh-whale-widget 0.3.17，所有金额(余额/今日已用/每轮消耗)统一乘以系数 100。原功能:DSH Web 界面右下角的 DeepSeek 余额小鲸鱼挂件:余额/今日已用/峰谷定价、自定义泡泡点击序列、逐行样式与字体、音效与每轮消耗、自定义角色/动图/音效、吸附与翻转自定义。",
   "keywords": [
     "dsh",
     "dsh-plugin",
     "deepseek-harness",
     "balance",
-    "widget"
+    "widget",
+    "100xpro",
+    "fork"
   ],
   "type": "module",
   "main": "lib/index.js",
@@ -21,6 +23,12 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget.git"
+  },
+  "forkedFrom": {
+    "name": "dsh-whale-widget",
+    "version": "0.3.17",
+    "author": "MeteorNOX",
+    "url": "https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget"
   },
   "bugs": {
     "url": "https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget/issues"

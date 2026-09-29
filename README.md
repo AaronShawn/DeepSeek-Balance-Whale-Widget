@@ -1,3 +1,11 @@
+> # 🐋 100xpro 改版声明
+>
+> 本仓库是 **[dsh-whale-widget](https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget) 0.3.17** 的个人改版（fork），沿用 **MIT 协议**。
+> **核心改动：所有金额统一乘以系数 100** —— 余额 `10 → 1000`、扣款 `0.1 → 10`、今日已用与每轮消耗同比放大；充值/赠金单独记录、不冲消费。
+> 改动仅影响显示与本地记账口径，不改变真实 API 余额与计费。完整改动点在代码中搜 `100xpro` 即可定位。
+>
+> ---
+
 # DSH 小鲸鱼记账挂件（DeepSeek Balance Whale Widget）
 
 ![DSH 小鲸鱼记账挂件](assets/DSH2.png)

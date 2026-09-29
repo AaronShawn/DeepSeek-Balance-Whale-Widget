@@ -2873,7 +2873,9 @@ function usageAlertBudgetEditor(key, onSave) {
       ? '每轮消耗提示(内容里用 {cost} 引用本轮消耗金额)'
       : (isWait
         ? ((waitKind === 'approval' ? '授权' : '提问') + '提示内容({session} = 对话名)')
-        : (isAlert ? '触发条件(余额低于该值时提醒)' : '触发条件(今日已用达到该值时提醒)'))
+        : (isAlert
+          ? '触发条件(余额低于该值时提醒)｜100xpro：金额已×100，请按放大后的数值填'
+          : '触发条件(今日已用达到该值时提醒)｜100xpro：金额已×100，请按放大后的数值填'))
     card.appendChild(secCond)
     // 触发条件控件(启用 + 阈值):cost 模式没有触发条件,这两个控件不创建
     // v761：wait 模式同样没有"触发条件"（挂起音效/开关/自动关闭/冒泡都在「全局音效设置」面板那一区里）
@@ -4095,7 +4097,7 @@ function openModelQuotaEditor(modelId) {
     var moneyHint = document.createElement('div')
     moneyHint.className = 'dshwv-bubhint'
     moneyHint.style.margin = '0 0 8px'
-    moneyHint.textContent = '金额单位请手动填写：自动累计统计的是 token，不是钱。'
+    moneyHint.textContent = '金额单位请手动填写：自动累计统计的是 token，不是钱。｜100xpro：金额已×100，请按放大后的数值填写总量与已用。'
     moneyHint.style.display = unitSel.value === 'money' ? '' : 'none'
     card.appendChild(moneyHint)
     var totalInp = apiTextInput(q.total || '', '例: 20000000')
@@ -4590,7 +4592,7 @@ function openBalanceAdjustment(modelId) {
       '\n起点余额 ' + usageMoney(selected.openingBalance, selected.currency) +
       ' → 当前余额 ' + usageMoney(selected.currentBalance, selected.currency) +
       '\n当前：' + selected.label + ' ' + usageMoney(selected.amount, selected.currency)
-    creditsHint.textContent = '本统计区间累计到账金额（' + selected.currency + '，未到账请填 0）：包括充值、赠金等；多次到账请填合计，不要只填最后一笔。'
+    creditsHint.textContent = '本统计区间累计到账金额（' + selected.currency + '，未到账请填 0）：包括充值、赠金等；多次到账请填合计，不要只填最后一笔。｜100xpro：金额已×100，请按放大后的数值填写。'
     debitsHint.textContent = '非调用造成的余额减少（' + selected.currency + '，没有请填 0）：到期赠金、余额退回等。仅填写统计起点之后的金额；保存会替换之前的校正值。'
     credits.value = selected.credits == null ? '' : String(selected.credits)
     debits.value = selected.otherDebits == null ? '0' : String(selected.otherDebits)
