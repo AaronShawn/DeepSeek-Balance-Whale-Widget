@@ -1,11 +1,83 @@
-> # 🐋 100xpro 改版声明
->
-> 本仓库是 **[dsh-whale-widget](https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget) 0.3.17** 的个人改版（fork），沿用 **MIT 协议**。
-> **核心改动：所有金额统一乘以系数 100** —— 余额 `10 → 1000`、扣款 `0.1 → 10`、今日已用与每轮消耗同比放大；充值/赠金单独记录、不冲消费。
-> 改动仅影响显示与本地记账口径，不改变真实 API 余额与计费。完整改动点在代码中搜 `100xpro` 即可定位。
->
-> ---
+## 🐳 这是个啥？
 
+个人魔改的小鲸鱼挂件，基于原版 [dsh-whale-widget](https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget) **v0.3.17**，MIT 协议不变。
+
+干的事情特别简单粗暴：**所有金额数字 ×100**。
+
+- 余额原来显示 `10`，现在是 `1000`
+- 一轮对话原来扣 `0.1`，现在记 `10`
+- 今日已用、每轮消耗、充值赠金，凡是跟钱有关的数字一律同比放大
+
+纯显示 + 本地记账层面自娱自乐，真实 API 该扣多少还是多少，不会多花钱（当然也不会变出钱来）。
+不想放大的话，用环境变量 `DSHW_MONEY_MULTIPLIER=1` 启动就恢复原样。代码里动过的地方都留了 `100xpro` 注释，搜一下全出来了。
+
+---
+
+## 🔴 改了哪几个文件？
+
+带红点的就是这次碰过的，其他文件一个字没动：
+
+| 文件 | 改了啥 |
+|---|---|
+| 🔴 [`lib/index.js`](lib/index.js) | 主菜。新增系数常量 `MONEY_MULTIPLIER`（默认 100，环境变量可覆盖）和 `scaleMoney()`，在 6 个金额入口统一放大 |
+| 🔴 [`assets/whale-widget.js`](assets/whale-widget.js) | 前端本体。需要手填金额的地方（预警阈值、模型额度、余额校正）补了“金额已×100”的提示，防止填错 |
+| 🔴 [`cordis.patch.yml`](cordis.patch.yml) | 插件挂载声明，id 改成 `dsh-whale-widget-100xpro` |
+| 🔴 [`package.json`](package.json) | 包名版本改掉，加了 `forkedFrom` 出处字段 |
+| 🔴 [`verify-100x.mjs`](verify-100x.mjs) | 新加的小测试，node 跑一遍就知道 ×100 有没有翻车 |
+| ⚪ [`lib/accounting.mjs`](lib/accounting.mjs) | 没动，记账内核保持官方原样 |
+
+## 实现了哪些功能？
+
+1. **余额 ×100**：API key 方式和 DeepSeek 账号登录方式取到的余额，统一放大后再显示；“测试连接”里的数字同口径
+2. **每轮扣款 ×100**：对话结束按真实 token 算出的钱，先放大再记账、再弹消耗泡泡
+3. **余额校正 ×100**：手动填的累计到账、非调用扣减也放大，不然账会算不平；重置（reset）不受影响
+4. **自定义厂商同步放大**：OpenRouter 之类自己加的厂商，余额 / total / used 字段一样处理
+5. **防呆提示**：所有自己填金额的入口都有提示语，告诉你现在要按放大后的数字填
+6. **记账内核零改动**：单价表和整数记账逻辑不碰，只在“钱进账本”的边界动手——这样以后跟官方更新冲突最小
+
+改动前后对比，红删绿增：
+
+```diff
+- 余额 10.00
++ 余额 1000.00
+
+- 本轮消耗 0.10
++ 本轮消耗 10.00
+```
+
+## 程序架构图
+
+图里红色的两个节点就是 100xpro 插过手的地方，其余全是原版流程：
+
+```mermaid
+flowchart LR
+  API[(DeepSeek / 自定义厂商 API)]
+  FB[fetchBalance 取余额]
+  SM1{{scaleMoney ×100}}
+  OBS[observeBalance 记账内核]
+  LED[(本地账本 .dshw-usage.json)]
+  EVT[DSH turn/end 会话事件]
+  SM2{{scaleMoney ×100}}
+  ROUTE[路由 /dsh-whale/*]
+  WIDGET[小鲸鱼前端 whale-widget.js]
+
+  API --> FB --> SM1 --> OBS --> LED
+  EVT --> SM2 --> OBS
+  OBS --> ROUTE
+  LED --> ROUTE
+  ROUTE -->|balance.json 60s 轮询| WIDGET
+  ROUTE -->|wait.json 1s 轮询| WIDGET
+  WIDGET -->|cookie 鉴权| ROUTE
+
+  classDef changed fill:#ffe0e0,stroke:#d33,stroke-width:2px,color:#c00
+  class SM1,SM2 changed
+```
+
+放大只发生在两个边界：**余额进账本之前**、**每轮消耗进账本之前**。前端拿到的就已经是放大后的数字，不用自己再算。
+
+> 小提示：GitHub 的 README 不支持自定义红字样式，所以“标红”用的是 🔴 标记、diff 代码块（红删绿增）和架构图里的红色节点，在 GitHub 页面上直接能看到效果。
+
+---
 # DSH 小鲸鱼记账挂件（DeepSeek Balance Whale Widget）
 
 ![DSH 小鲸鱼记账挂件](assets/DSH2.png)
