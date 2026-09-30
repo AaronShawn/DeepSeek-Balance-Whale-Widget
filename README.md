@@ -7,6 +7,7 @@
 - 余额原来显示 `10`，现在是 `1000`
 - 一轮对话原来扣 `0.1`，现在记 `10`
 - 今日已用、每轮消耗、充值赠金，凡是跟钱有关的数字一律同比放大
+- 余额尾巴不再是死板的 `.00`：扣款按高精度挂账、整数快照对账结转，小数位会跟着真实消费变
 
 纯显示 + 本地记账层面自娱自乐，真实 API 该扣多少还是多少，不会多花钱（当然也不会变出钱来）。
 不想放大的话，用环境变量 `DSHW_MONEY_MULTIPLIER=1` 启动就恢复原样。代码里动过的地方都留了 `100xpro` 注释，搜一下全出来了。
@@ -19,7 +20,7 @@
 
 | 文件 | 改了啥 |
 |---|---|
-| 🔴 [`lib/index.js`](lib/index.js) | 主菜。新增系数常量 `MONEY_MULTIPLIER`（默认 100，环境变量可覆盖）和 `scaleMoney()`，在 6 个金额入口统一放大 |
+| 🔴 [`lib/index.js`](lib/index.js) | 主菜。① 系数常量 `MONEY_MULTIPLIER`（默认 100，环境变量可覆盖）+ `scaleMoney()`，6 个金额入口统一放大；② 小数位挂账结转（`xSeed` 播种 / `xAccrued` 挂账 / `xRecon` 对账），让余额和今日已用带确定性的两位小数 |
 | 🔴 [`assets/whale-widget.js`](assets/whale-widget.js) | 前端本体。需要手填金额的地方（预警阈值、模型额度、余额校正）补了“金额已×100”的提示，防止填错 |
 | 🔴 [`cordis.patch.yml`](cordis.patch.yml) | 插件挂载声明，id 改成 `dsh-whale-widget-100xpro` |
 | 🔴 [`package.json`](package.json) | 包名版本改掉，加了 `forkedFrom` 出处字段 |
@@ -34,6 +35,7 @@
 4. **自定义厂商同步放大**：OpenRouter 之类自己加的厂商，余额 / total / used 字段一样处理
 5. **防呆提示**：所有自己填金额的入口都有提示语，告诉你现在要按放大后的数字填
 6. **记账内核零改动**：单价表和整数记账逻辑不碰，只在“钱进账本”的边界动手——这样以后跟官方更新冲突最小
+7. **小数位挂账结转**：×100 之后余额本来全是 `.00`，太假。改成高精度扣款先挂账（`xAccrued`）、整数快照定期对账（`xRecon`）、没确认的分数位继续结转，期初小数（`xSeed`）由“账号 + 日期”确定性播种。余额随消费自然变化，恒等式始终成立：**期初 − 余额 = 今日已用**；重启不乱跳、不是随机数
 
 改动前后对比，红删绿增：
 
@@ -47,33 +49,44 @@
 
 ## 程序架构图
 
-图里红色的两个节点就是 100xpro 插过手的地方，其余全是原版流程：
+图里红色节点都是我插过手的地方，其余是原版流程：
 
 ```mermaid
 flowchart LR
   API[(DeepSeek / 自定义厂商 API)]
   FB[fetchBalance 取余额]
   SM1{{scaleMoney ×100}}
-  OBS[observeBalance 记账内核]
-  LED[(本地账本 .dshw-usage.json)]
+  OBS[observeBalance 整数快照 opening/last/debit]
   EVT[DSH turn/end 会话事件]
   SM2{{scaleMoney ×100}}
+  ACC[xAccrued 扣款挂账 高精度]
+  SEED[xSeed 期初种子 账号+日期哈希]
+  RECON[xRecon 快照对账 分数位结转]
+  DISP[显示口径 opening+xSeed−xAccrued+xRecon]
+  LED[(本地账本 .dshw-usage.json)]
   ROUTE[路由 /dsh-whale/*]
   WIDGET[小鲸鱼前端 whale-widget.js]
 
   API --> FB --> SM1 --> OBS --> LED
-  EVT --> SM2 --> OBS
-  OBS --> ROUTE
-  LED --> ROUTE
+  EVT --> SM2 --> ACC --> LED
+  OBS -.整数快照到达.-> RECON
+  LED --> SEED
+  LED --> ACC
+  LED --> RECON
+  SEED --> DISP
+  ACC --> DISP
+  RECON --> DISP
+  OBS --> DISP
+  DISP --> ROUTE
   ROUTE -->|balance.json 60s 轮询| WIDGET
   ROUTE -->|wait.json 1s 轮询| WIDGET
   WIDGET -->|cookie 鉴权| ROUTE
 
   classDef changed fill:#ffe0e0,stroke:#d33,stroke-width:2px,color:#c00
-  class SM1,SM2 changed
+  class SM1,SM2,ACC,SEED,RECON,DISP changed
 ```
 
-放大只发生在两个边界：**余额进账本之前**、**每轮消耗进账本之前**。前端拿到的就已经是放大后的数字，不用自己再算。
+看图说话：×100 发生在两个入口（余额、扣款）；扣款的高精度部分挂进 `xAccrued`，整数快照来了走 `xRecon` 对账、没确认的分数位继续结转，期初 `xSeed` 由“账号 + 日期”确定性播种。前端拿到的就是最终显示口径，不用自己算。
 
 ---
 # DSH 小鲸鱼记账挂件（DeepSeek Balance Whale Widget）
